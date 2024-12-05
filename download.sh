@@ -14,6 +14,11 @@
 # limitations under the License.
 # ==============================================================================
 
+sudo apt update -y
+sudo apt install libglib2.0-dev -y
+# pip uninstall opencv-python opencv-python-headless -y
+pip install opencv-python --force-reinstall
+
 BASE_DIR=$1
 ORIGINAL_DIR=$(pwd)
 mkdir -p ${BASE_DIR}

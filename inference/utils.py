@@ -367,17 +367,18 @@ def run_one_example(
 
   conversation = list(example.context_chunks)
   responses: list[str] = []
+  model_full_responses: list[str] = []
   response_time_taken = []
   for query_turn in example.query_turns:
     conversation += list(query_turn.chunks)
     try:
       st = time.time()
-      model_output = model.infer(conversation)
+      model_output, model_response = model.infer(conversation)
       if len(example.query_turns) > 1:
         # Trim model output for multi-turn conversations.
         model_output = _trim_model_output(model_output)
       responses.append(model_output)
-
+      model_full_responses.append(model_response)
       # Add the model output as an assistant chunk.
       conversation.append(
           ContentChunk(
@@ -395,6 +396,7 @@ def run_one_example(
       "qid": example.qid,
       "num_turns": example.num_turns,
       "model_outputs": responses,
+      "model_full_responses": model_full_responses,
       "metadata": {
           "time_taken_seconds": response_time_taken,
           "new_gold_answers": example.gold_answers,

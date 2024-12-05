@@ -73,12 +73,18 @@ _OUTPUT_PATH = flags.DEFINE_string(
     "Path to write prediction outputs as a JSONL file.",
     required=True,
 )
-_MODEL_URL_OR_NAME = flags.DEFINE_enum(
+# _MODEL_URL_OR_NAME = flags.DEFINE_enum(
+#     "model_url_or_name",
+#     "gemini-1.5-flash-002",
+#     models.GeminiModel,
+#     "Evergreen model URL or API-based model name.",
+# )
+_MODEL_URL_OR_NAME = flags.DEFINE_string(
     "model_url_or_name",
-    "gemini-1.5-flash-002",
-    models.GeminiModel,
+	  "/mnt/longcontext/models/siyuan/llama3/llama-3-8B",
     "Evergreen model URL or API-based model name.",
 )
+
 _PROJECT_ID = flags.DEFINE_string(
     "project_id",
     None,
@@ -230,21 +236,31 @@ def main(argv: Sequence[str]) -> None:
     except Exception as exception:  # pylint: disable=broad-exception-caught
       print(exception)
       print("Failed to cache; continuing inference without caching...")
+  if _MAX_WORKERS.value != 1:
+    with open(_OUTPUT_PATH.value, "w", encoding="utf-8") as f:
+      with concurrent.futures.ThreadPoolExecutor(
+          max_workers=_MAX_WORKERS.value
+      ) as executor:
+        eval_futures = executor.map(
+            functools.partial(
+                _run_one_example, model=model, finished_lines=finished_lines
+            ),
+            qid2example.values(),
+        )
+        for output in tqdm.tqdm(eval_futures, total=len(qid2example)):
+          import pdb; pdb.set_trace()
+          if output:
+            f.write(json.dumps(output, ensure_ascii=False) + "\n")
+            f.flush()
+  else:
+    with open(_OUTPUT_PATH.value, "w", encoding="utf-8") as f:
+      for qid, example in tqdm.tqdm(qid2example.items(), total=len(qid2example)):
+          output = _run_one_example(model=model, finished_lines=finished_lines, example=example)
+          if output:
+              f.write(json.dumps(output, ensure_ascii=False) + "\n")
+              f.flush()
 
-  with open(_OUTPUT_PATH.value, "w", encoding="utf-8") as f:
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=_MAX_WORKERS.value
-    ) as executor:
-      eval_futures = executor.map(
-          functools.partial(
-              _run_one_example, model=model, finished_lines=finished_lines
-          ),
-          qid2example.values(),
-      )
-      for output in tqdm.tqdm(eval_futures, total=len(qid2example)):
-        if output:
-          f.write(json.dumps(output, ensure_ascii=False) + "\n")
-          f.flush()
+
 
     print(f"Wrote results to {_OUTPUT_PATH.value}")
 
