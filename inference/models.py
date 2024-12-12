@@ -254,7 +254,7 @@ class HuggingfaceModel(Model):
     prompt = prompt + "\n" + self.task_prompt_list[os.getenv("DATASET")]+"\n"
     input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids
     input_ids = input_ids.to(self.model.device)
-    output = self.model.generate(input_ids, do_sample=False, max_new_tokens=500, stopping_criteria=StoppingCriteriaList([TripleEqualsStoppingCriteria(self.tokenizer)]))
+    output = self.model.generate(input_ids, do_sample=False, max_new_tokens=1024, stopping_criteria=StoppingCriteriaList([TripleEqualsStoppingCriteria(self.tokenizer)]))
     # this is a work around to remove the prompt from the response
     # primary concern is that llama3 tokenizer does not ensures that the prompt is the same after and before tokenization
     prompt = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
